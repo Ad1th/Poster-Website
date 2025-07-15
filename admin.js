@@ -137,9 +137,21 @@ class AdminPanel {
 
     // Show loading state
     submitBtn.disabled = true;
-    submitText.textContent = "Adding Poster...";
+    submitText.textContent = "Validating image...";
 
     try {
+      // Validate image URL first
+      const isValidImage = await this.validateImageUrl(formData.image_url);
+      if (!isValidImage) {
+        this.showMessage(
+          "Invalid image URL. Please check the URL and try again.",
+          "error"
+        );
+        return;
+      }
+
+      submitText.textContent = "Adding Poster...";
+
       // Add poster to Supabase
       await supabase.addPoster(formData);
 
@@ -159,6 +171,27 @@ class AdminPanel {
       // Reset button state
       submitBtn.disabled = false;
       submitText.textContent = "Add Poster";
+    }
+  }
+
+  // Validate image URL
+  async validateImageUrl(url) {
+    if (!url || url.trim() === "") return false;
+
+    try {
+      const response = await fetch(url, {
+        method: "HEAD",
+        mode: "no-cors", // Handle CORS issues
+      });
+      return true; // If no error, assume it's valid
+    } catch {
+      // Try to load as img element
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        img.src = url;
+      });
     }
   }
 
@@ -221,7 +254,9 @@ class AdminPanel {
                     src="${poster.image_url}" 
                     alt="${poster.name}"
                     class="poster-thumbnail"
-                    onerror="this.src='https://via.placeholder.com/48x48/475569/94a3b8?text=?'"
+                    onerror="this.src='https://via.placeholder.com/48x48/475569/94a3b8?text=?'; this.onerror=null;"
+                    onload="this.style.opacity='1';"
+                    style="opacity: 0; transition: opacity 0.3s;"
                 >
                 <div class="poster-item-details">
                     <h4>${poster.name}</h4>

@@ -75,13 +75,25 @@ class PosterStore {
     // Format price
     const price = poster.price ? `₹${poster.price}` : "Price TBD";
 
+    // Create multiple fallback images
+    const fallbackImages = [
+      "https://via.placeholder.com/300x400/334155/94a3b8?text=No+Image",
+      "https://placehold.co/300x400/334155/94a3b8/png?text=Poster",
+      "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDMwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMzMzQxNTUiLz48dGV4dCB4PSIxNTAiIHk9IjIwMCIgZmlsbD0iIzk0YTNiOCIgZm9udC1zaXplPSIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==",
+    ];
+
     card.innerHTML = `
             <div class="poster-image-container">
+                <div class="image-loading">Loading...</div>
                 <img 
-                    src="${poster.image_url}" 
+                    src="${poster.image_url || fallbackImages[0]}" 
                     alt="${poster.name}"
                     class="poster-image"
-                    onerror="this.src='https://via.placeholder.com/300x400/334155/94a3b8?text=No+Image'"
+                    onload="this.previousElementSibling.style.display='none'; this.style.display='block';"
+                    onerror="this.handleImageError(this, ${JSON.stringify(
+                      fallbackImages
+                    ).replace(/"/g, "&quot;")})"
+                    style="display: none;"
                 >
                 <div class="availability-badge ${badgeClass}">
                     ${badgeText}
@@ -101,7 +113,61 @@ class PosterStore {
             </div>
         `;
 
+    // Add image error handling after creating the card
+    const img = card.querySelector(".poster-image");
+    this.setupImageErrorHandling(img, fallbackImages);
+
     return card;
+  }
+
+  // Setup robust image error handling
+  setupImageErrorHandling(img, fallbackImages) {
+    let fallbackIndex = 0;
+
+    const handleError = () => {
+      const loadingDiv = img.previousElementSibling;
+
+      // Try next fallback image
+      if (fallbackIndex < fallbackImages.length - 1) {
+        fallbackIndex++;
+        img.src = fallbackImages[fallbackIndex];
+      } else {
+        // All fallbacks failed, show final fallback
+        loadingDiv.style.display = "none";
+        img.style.display = "block";
+        img.style.backgroundColor = "#334155";
+        img.style.color = "#94a3b8";
+        img.style.display = "flex";
+        img.style.alignItems = "center";
+        img.style.justifyContent = "center";
+        img.innerHTML =
+          '<span style="font-size: 14px;">Image Unavailable</span>';
+      }
+    };
+
+    img.onerror = handleError;
+
+    // Also validate the initial URL
+    this.validateImageUrl(img.src).then((isValid) => {
+      if (!isValid && img.src !== fallbackImages[0]) {
+        handleError();
+      }
+    });
+  }
+
+  // Validate image URL
+  async validateImageUrl(url) {
+    if (!url || url.trim() === "") return false;
+
+    try {
+      const response = await fetch(url, { method: "HEAD" });
+      return (
+        response.ok &&
+        response.headers.get("content-type")?.startsWith("image/")
+      );
+    } catch {
+      return false;
+    }
   }
 }
 
