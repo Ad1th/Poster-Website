@@ -1,55 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hostel Poster Store</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <!-- Header Section -->
     <header class="header">
-        <div class="container">
-            <div class="header-content">
-                <div class="header-text">
-                    <h1>Hostel Poster Store</h1>
-                    <p>Minimalistic posters for your space</p>
-                </div>
-                <a href="admin.html" class="btn btn-primary">Admin</a>
-            </div>
+      <div class="container">
+        <div class="header-content">
+          <div class="header-text">
+            <h1>Hostel Poster Store</h1>
+            <p>Minimalistic posters for your space</p>
+          </div>
         </div>
+      </div>
     </header>
 
     <!-- Main Content -->
     <main class="main">
-        <div class="container">
-            <!-- Loading State -->
-            <div id="loading" class="loading">
-                <div class="loading-text">Loading posters...</div>
-            </div>
-
-            <!-- Empty State -->
-            <div id="empty-state" class="empty-state" style="display: none;">
-                <div class="empty-text">No posters available yet</div>
-                <p class="empty-subtext">Check back later or contact admin to add some posters!</p>
-            </div>
-
-            <!-- Poster Grid -->
-            <div id="poster-grid" class="poster-grid" style="display: none;">
-                <!-- Posters will be dynamically inserted here -->
-            </div>
+      <div class="container">
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+          <div class="loading-text">Loading posters...</div>
         </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="empty-state" style="display: none">
+          <div class="empty-text">No posters available yet</div>
+          <p class="empty-subtext">
+            Check back later or contact admin to add some posters!
+          </p>
+        </div>
+
+        <!-- Poster Grid -->
+        <div id="poster-grid" class="poster-grid" style="display: none">
+          <!-- Posters will be dynamically inserted here -->
+        </div>
+      </div>
     </main>
 
     <!-- Footer -->
     <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <p>&copy; 2024 Hostel Poster Store. Simple & Clean.</p>
-            </div>
+      <div class="container">
+        <div class="footer-content">
+          <p>&copy; 2024 Hostel Poster Store. Simple & Clean.</p>
         </div>
+      </div>
     </footer>
 
     <script src="script.js"></script>
-</body>
+  </body>
 </html>
