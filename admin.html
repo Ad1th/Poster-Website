@@ -1,105 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin - Hostel Poster Store</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <!-- Login Screen -->
     <div id="login-screen" class="login-screen">
-        <div class="login-container">
-            <h1>Admin Access</h1>
-            <form id="login-form" class="login-form">
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Enter admin password" required>
-                </div>
-                <div id="auth-error" class="error-message" style="display: none;"></div>
-                <button type="submit" class="btn btn-primary btn-full">Login</button>
-            </form>
-            <div class="back-link">
-                <a href="index.html">← Back to Store</a>
-            </div>
+      <div class="login-container">
+        <h1>Admin Access</h1>
+        <form id="login-form" class="login-form">
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              placeholder="Enter admin password"
+              required
+            />
+          </div>
+          <div
+            id="auth-error"
+            class="error-message"
+            style="display: none"
+          ></div>
+          <button type="submit" class="btn btn-primary btn-full">Login</button>
+        </form>
+        <div class="back-link">
+          <a href="index.html">← Back to Store</a>
         </div>
+      </div>
     </div>
 
     <!-- Admin Dashboard -->
-    <div id="admin-dashboard" class="admin-dashboard" style="display: none;">
-        <!-- Header -->
-        <header class="header">
-            <div class="container">
-                <div class="header-content">
-                    <div class="header-text">
-                        <h1>Admin Dashboard</h1>
-                        <p>Manage your poster inventory</p>
-                    </div>
-                    <div class="header-actions">
-                        <a href="index.html" class="btn btn-secondary">View Store</a>
-                        <button id="logout-btn" class="btn btn-danger">Logout</button>
-                    </div>
-                </div>
+    <div id="admin-dashboard" class="admin-dashboard" style="display: none">
+      <!-- Header -->
+      <header class="header">
+        <div class="container">
+          <div class="header-content">
+            <div class="header-text">
+              <h1>Admin Dashboard</h1>
+              <p>Manage your poster inventory</p>
             </div>
-        </header>
-
-        <!-- Main Content -->
-        <main class="main">
-            <div class="container">
-                <div class="admin-grid">
-                    <!-- Add New Poster Form -->
-                    <div class="admin-section">
-                        <h2>Add New Poster</h2>
-                        <div class="form-container">
-                            <form id="poster-form" class="poster-form">
-                                <div class="form-group">
-                                    <label for="poster-name">Poster Name *</label>
-                                    <input type="text" id="poster-name" placeholder="Enter poster name" required>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="poster-image">Image URL *</label>
-                                    <input type="url" id="poster-image" placeholder="https://example.com/poster.jpg" required>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="poster-quantity">Quantity *</label>
-                                    <input type="number" id="poster-quantity" min="0" value="1" required>
-                                </div>
-
-                                <div class="form-group checkbox-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="poster-available" checked>
-                                        <span class="checkmark"></span>
-                                        Available for purchase
-                                    </label>
-                                </div>
-
-                                <button type="submit" class="btn btn-primary btn-full">
-                                    <span id="submit-text">Add Poster</span>
-                                </button>
-
-                                <div id="form-message" class="form-message" style="display: none;"></div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Current Posters List -->
-                    <div class="admin-section">
-                        <h2>Current Posters</h2>
-                        <div class="poster-list-container">
-                            <div id="admin-loading" class="loading-small">Loading posters...</div>
-                            <div id="admin-empty" class="empty-small" style="display: none;">No posters added yet</div>
-                            <div id="poster-list" class="poster-list" style="display: none;">
-                                <!-- Poster list items will be inserted here -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="header-actions">
+              <a href="index.html" class="btn btn-secondary">View Store</a>
+              <button id="logout-btn" class="btn btn-danger">Logout</button>
             </div>
-        </main>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="main">
+        <div class="container">
+          <div class="admin-grid">
+            <!-- Add New Poster Form -->
+            <div class="admin-section">
+              <h2>Add New Poster</h2>
+              <div class="form-container">
+                <form id="poster-form" class="poster-form">
+                  <div class="form-group">
+                    <label for="poster-name">Poster Name *</label>
+                    <input
+                      type="text"
+                      id="poster-name"
+                      placeholder="Enter poster name (e.g., Marvel Avengers Poster)"
+                      required
+                      maxlength="100"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="poster-image">Image URL *</label>
+                    <input
+                      type="url"
+                      id="poster-image"
+                      placeholder="https://example.com/poster.jpg"
+                      required
+                    />
+                    <small class="form-help"
+                      >Enter a direct link to the poster image</small
+                    >
+                  </div>
+
+                  <div class="form-group">
+                    <label for="poster-quantity">Quantity *</label>
+                    <input
+                      type="number"
+                      id="poster-quantity"
+                      min="0"
+                      max="1000"
+                      value="1"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="poster-price">Price (₹) *</label>
+                    <input
+                      type="number"
+                      id="poster-price"
+                      min="0"
+                      step="0.01"
+                      value="0.00"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="poster-available" checked />
+                      <span class="checkmark"></span>
+                      Available for purchase
+                    </label>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary btn-full">
+                    <span id="submit-text">Add Poster</span>
+                  </button>
+
+                  <div
+                    id="form-message"
+                    class="form-message"
+                    style="display: none"
+                  ></div>
+                </form>
+              </div>
+            </div>
+
+            <!-- Current Posters List -->
+            <div class="admin-section">
+              <h2>Current Posters</h2>
+              <div class="poster-list-container">
+                <div id="admin-loading" class="loading-small">
+                  Loading posters...
+                </div>
+                <div id="admin-empty" class="empty-small" style="display: none">
+                  No posters added yet
+                </div>
+                <div id="poster-list" class="poster-list" style="display: none">
+                  <!-- Poster list items will be inserted here -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
 
+    <script src="supabase.js"></script>
     <script src="admin.js"></script>
-</body>
+  </body>
 </html>
