@@ -32,6 +32,36 @@ class AdminPanel {
     if (posterForm) {
       posterForm.addEventListener("submit", (e) => this.handleAddPoster(e));
     }
+
+    // Image option radio buttons
+    const uploadOption = document.getElementById("upload-option");
+    const urlOption = document.getElementById("url-option");
+    const fileInput = document.getElementById("poster-image-file");
+    const urlInput = document.getElementById("poster-image-url");
+
+    if (uploadOption && urlOption) {
+      uploadOption.addEventListener("change", () => {
+        fileInput.disabled = false;
+        urlInput.disabled = true;
+        urlInput.value = "";
+      });
+
+      urlOption.addEventListener("change", () => {
+        fileInput.disabled = true;
+        urlInput.disabled = false;
+        fileInput.value = "";
+      });
+    }
+
+    // File input preview
+    if (fileInput) {
+      fileInput.addEventListener("change", (e) => this.handleFilePreview(e));
+    }
+
+    // URL input preview
+    if (urlInput) {
+      urlInput.addEventListener("input", (e) => this.handleUrlPreview(e));
+    }
   }
 
   // Check if user is already authenticated
@@ -98,6 +128,7 @@ class AdminPanel {
   // Save posters to localStorage
   savePosters() {
     try {
+      this.loadPosters();
       localStorage.setItem("hostel_posters", JSON.stringify(this.posters));
       // Trigger storage event for main page
       window.dispatchEvent(
@@ -111,8 +142,44 @@ class AdminPanel {
     }
   }
 
+  // Handle file preview
+  handleFilePreview(e) {
+    this.loadPosters();
+    const file = e.target.files[0];
+    const preview = document.getElementById("image-preview");
+    const previewImg = document.getElementById("preview-img");
+
+    if (file && file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        previewImg.src = e.target.result;
+        preview.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    } else {
+      preview.style.display = "none";
+    }
+  }
+
+  // Handle URL preview
+  handleUrlPreview(e) {
+    this.loadPosters();
+    const url = e.target.value;
+    const preview = document.getElementById("image-preview");
+    const previewImg = document.getElementById("preview-img");
+
+    if (url) {
+      previewImg.src = url;
+      previewImg.onload = () => (preview.style.display = "block");
+      previewImg.onerror = () => (preview.style.display = "none");
+    } else {
+      preview.style.display = "none";
+    }
+  }
+
   // Handle add poster form submission
   async handleAddPoster(e) {
+    this.loadPosters();
     e.preventDefault();
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -121,7 +188,6 @@ class AdminPanel {
     // Get form data
     const formData = {
       name: document.getElementById("poster-name").value.trim(),
-      image_url: document.getElementById("poster-image").value.trim(),
       quantity:
         Number.parseInt(document.getElementById("poster-quantity").value) || 0,
       is_available: document.getElementById("poster-available").checked,
@@ -129,28 +195,104 @@ class AdminPanel {
         Number.parseFloat(document.getElementById("poster-price").value) || 0.0,
     };
 
+    // Get image data
+    const uploadOption = document.getElementById("upload-option").checked;
+    const fileInput = document.getElementById("poster-image-file");
+    const urlInput = document.getElementById("poster-image-url");
+
     // Validate form data
-    if (!formData.name || !formData.image_url) {
-      this.showMessage("Please fill in all required fields", "error");
+    if (!formData.name) {
+      this.showMessage("Please enter a poster name", "error");
+      return;
+    }
+
+    if (uploadOption && !fileInput.files[0]) {
+      this.showMessage("Please select an image file", "error");
+      return;
+    }
+
+    if (!uploadOption && !urlInput.value.trim()) {
+      this.showMessage("Please enter an image URL", "error");
       return;
     }
 
     // Show loading state
     submitBtn.disabled = true;
-    submitText.textContent = "Validating image...";
+    submitText.textContent = uploadOption
+      ? "Uploading image..."
+      : "Validating image...";
 
     try {
-      // Validate image URL first
-      const isValidImage = await this.validateImageUrl(formData.image_url);
-      if (!isValidImage) {
-        this.showMessage(
-          "Invalid image URL. Please check the URL and try again.",
-          "error"
-        );
-        return;
+      let imageUrl = null;
+      let imagePath = null;
+      this.loadPosters();
+
+      if (uploadOption) {
+        // Handle file upload
+        const file = fileInput.files[0];
+
+        // Validate file
+        if (file.size > 5 * 1024 * 1024) {
+          // 5MB limit
+          this.showMessage("File size must be less than 5MB", "error");
+          return;
+        }
+
+        if (!file.type.startsWith("image/")) {
+          this.showMessage("Please select a valid image file", "error");
+          return;
+        }
+
+        submitText.textContent = "Uploading to storage...";
+
+        // Generate unique filename
+        const timestamp = Date.now();
+        const fileExtension = file.name.split(".").pop();
+        const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+        const fileName = `${timestamp}_${cleanName}`;
+
+        try {
+          // Try primary upload method
+          const uploadResult = await supabase.uploadImage(file, fileName);
+          imageUrl = uploadResult.publicUrl;
+          imagePath = uploadResult.path;
+        } catch (primaryError) {
+          console.log(
+            "Primary upload failed, trying alternative method:",
+            primaryError
+          );
+          submitText.textContent = "Retrying upload...";
+
+          // Try alternative upload method
+          const uploadResult = await supabase.uploadImageAlternative(
+            file,
+            fileName
+          );
+          imageUrl = uploadResult.publicUrl;
+          imagePath = uploadResult.path;
+        }
+      } else {
+        // Handle URL option
+        imageUrl = urlInput.value.trim();
+
+        // Validate URL
+        const isValidImage = await this.validateImageUrl(imageUrl);
+        if (!isValidImage) {
+          this.showMessage(
+            "Invalid image URL. Please check the URL and try again.",
+            "error"
+          );
+          return;
+        }
       }
 
-      submitText.textContent = "Adding Poster...";
+      submitText.textContent = "Adding poster...";
+
+      // Add image data to form
+      formData.image_url = imageUrl;
+      if (imagePath) {
+        formData.image_path = imagePath;
+      }
 
       // Add poster to Supabase
       await supabase.addPoster(formData);
@@ -158,6 +300,10 @@ class AdminPanel {
       // Reset form
       e.target.reset();
       document.getElementById("poster-available").checked = true;
+      document.getElementById("upload-option").checked = true;
+      document.getElementById("poster-image-file").disabled = false;
+      document.getElementById("poster-image-url").disabled = true;
+      document.getElementById("image-preview").style.display = "none";
 
       // Show success message
       this.showMessage("Poster added successfully!", "success");
@@ -166,6 +312,7 @@ class AdminPanel {
       await this.loadPosters();
       this.renderPosterList();
     } catch (error) {
+      console.error("Upload error details:", error);
       this.showMessage("Error adding poster: " + error.message, "error");
     } finally {
       // Reset button state
@@ -248,10 +395,15 @@ class AdminPanel {
       : "btn-toggle-unavailable";
     const price = poster.price ? `₹${poster.price}` : "No price";
 
+    // Use uploaded image or fallback
+    const imageUrl =
+      poster.image_url ||
+      "https://via.placeholder.com/48x48/475569/94a3b8?text=?";
+
     item.innerHTML = `
             <div class="poster-item-info">
                 <img 
-                    src="${poster.image_url}" 
+                    src="${imageUrl}" 
                     alt="${poster.name}"
                     class="poster-thumbnail"
                     onerror="this.src='https://via.placeholder.com/48x48/475569/94a3b8?text=?'; this.onerror=null;"
@@ -260,14 +412,25 @@ class AdminPanel {
                 >
                 <div class="poster-item-details">
                     <h4>${poster.name}</h4>
-                    <p>Qty: ${poster.quantity} • ${availabilityText} • ${price}</p>
+                    <p>Qty: ${
+                      poster.quantity
+                    } • ${availabilityText} • ${price}</p>
+                    ${
+                      poster.image_path
+                        ? '<small style="color: #6b7280;">Uploaded Image</small>'
+                        : '<small style="color: #6b7280;">External URL</small>'
+                    }
                 </div>
             </div>
             <div class="poster-item-actions">
-                <button class="btn btn-small ${toggleClass}" onclick="adminPanel.toggleAvailability(${poster.id})">
+                <button class="btn btn-small ${toggleClass}" onclick="adminPanel.toggleAvailability(${
+      poster.id
+    })">
                     ${availabilityText}
                 </button>
-                <button class="btn btn-small btn-delete" onclick="adminPanel.deletePoster(${poster.id})">
+                <button class="btn btn-small btn-delete" onclick="adminPanel.deletePoster(${
+                  poster.id
+                })">
                     Delete
                 </button>
             </div>
@@ -294,11 +457,24 @@ class AdminPanel {
     }
   }
 
-  // Delete poster
+  // Delete poster (with image cleanup)
   async deletePoster(posterId) {
     if (confirm("Are you sure you want to delete this poster?")) {
       try {
+        const poster = this.posters.find((p) => p.id === posterId);
+
+        // Delete from database first
         await supabase.deletePoster(posterId);
+
+        // If poster had an uploaded image, delete it from storage
+        if (poster && poster.image_path) {
+          try {
+            await supabase.deleteImage(poster.image_path);
+          } catch (error) {
+            console.warn("Could not delete image from storage:", error);
+          }
+        }
+
         await this.loadPosters();
         this.renderPosterList();
         this.showMessage("Poster deleted successfully", "success");

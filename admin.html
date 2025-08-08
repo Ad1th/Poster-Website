@@ -73,16 +73,46 @@
                   </div>
 
                   <div class="form-group">
-                    <label for="poster-image">Image URL *</label>
+                    <label for="poster-image">Image</label>
+                    
+                    <!-- Image option selector -->
+                    <div class="image-option-selector">
+                      <label class="radio-label">
+                        <input type="radio" id="upload-option" name="image-option" value="upload" checked>
+                        <span>Upload Image File</span>
+                      </label>
+                      <label class="radio-label">
+                        <input type="radio" id="url-option" name="image-option" value="url">
+                        <span>Use Image URL</span>
+                      </label>
+                    </div>
+
+                    <!-- File upload input -->
+                    <input
+                      type="file"
+                      id="poster-image-file"
+                      accept="image/*"
+                      class="file-input"
+                    />
+                    
+                    <!-- URL input -->
                     <input
                       type="url"
-                      id="poster-image"
+                      id="poster-image-url"
                       placeholder="https://example.com/poster.jpg"
-                      required
+                      class="url-input"
+                      disabled
                     />
-                    <small class="form-help"
-                      >Enter a direct link to the poster image</small
-                    >
+
+                    <!-- Image preview -->
+                    <div id="image-preview" class="image-preview" style="display: none;">
+                      <img id="preview-img" alt="Preview" />
+                      <small>Image Preview</small>
+                    </div>
+
+                    <small class="form-help">
+                      Upload an image file (max 5MB) or provide a direct image URL
+                    </small>
                   </div>
 
                   <div class="form-group">
@@ -138,6 +168,22 @@
                   Loading posters...
                 </div>
                 <div id="admin-empty" class="empty-small" style="display: none">
+                  No posters added yet
+                </div>
+                <div id="poster-list" class="poster-list" style="display: none">
+                  <!-- Poster list items will be inserted here -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="supabase.js"></script>
+    <script src="admin.js"></script>
+  </body>
+</html>
                   No posters added yet
                 </div>
                 <div id="poster-list" class="poster-list" style="display: none">

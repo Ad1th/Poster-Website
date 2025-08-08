@@ -75,25 +75,21 @@ class PosterStore {
     // Format price
     const price = poster.price ? `₹${poster.price}` : "Price TBD";
 
-    // Create multiple fallback images
-    const fallbackImages = [
-      "https://via.placeholder.com/300x400/334155/94a3b8?text=No+Image",
-      "https://placehold.co/300x400/334155/94a3b8/png?text=Poster",
-      "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDMwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMzMzQxNTUiLz48dGV4dCB4PSIxNTAiIHk9IjIwMCIgZmlsbD0iIzk0YTNiOCIgZm9udC1zaXplPSIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==",
-    ];
+    // Get dynamic image URL from Supabase
+    const imageUrl = this.getImageUrl(poster);
 
     card.innerHTML = `
             <div class="poster-image-container">
-                <div class="image-loading">Loading...</div>
+                <div class="image-loading" style="display: flex; align-items: center; justify-content: center; height: 400px; background: #f3f4f6; color: #6b7280;">
+                    Loading...
+                </div>
                 <img 
-                    src="${poster.image_url || fallbackImages[0]}" 
+                    src="${imageUrl}" 
                     alt="${poster.name}"
                     class="poster-image"
-                    onload="this.previousElementSibling.style.display='none'; this.style.display='block';"
-                    onerror="this.handleImageError(this, ${JSON.stringify(
-                      fallbackImages
-                    ).replace(/"/g, "&quot;")})"
                     style="display: none;"
+                    onload="this.style.display='block'; this.previousElementSibling.style.display='none';"
+                    onerror="this.handleImageError()"
                 >
                 <div class="availability-badge ${badgeClass}">
                     ${badgeText}
@@ -113,61 +109,109 @@ class PosterStore {
             </div>
         `;
 
-    // Add image error handling after creating the card
+    // Setup image error handling after creating the card
     const img = card.querySelector(".poster-image");
-    this.setupImageErrorHandling(img, fallbackImages);
+    const loadingDiv = card.querySelector(".image-loading");
+    this.setupImageErrorHandling(img, loadingDiv, poster);
 
     return card;
   }
 
+  // Get image URL from Supabase storage or fallback
+  getImageUrl(poster) {
+    // If poster has image_path, construct Supabase storage URL
+    if (poster.image_path) {
+      return `https://cspjbqypspcpojibljrl.supabase.co/storage/v1/object/public/poster-images/${poster.image_path}`;
+    }
+    
+    // If poster has direct image_url, use it
+    if (poster.image_url && poster.image_url.trim() !== "") {
+      return poster.image_url;
+    }
+
+    // Return fallback placeholder
+    return this.getFallbackImage();
+  }
+
+  // Get fallback image
+  getFallbackImage() {
+    return `data:image/svg+xml;base64,${btoa(`
+      <svg width="300" height="400" viewBox="0 0 300 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="300" height="400" fill="#334155"/>
+        <rect x="50" y="100" width="200" height="200" fill="#475569" rx="8"/>
+        <circle cx="100" cy="150" r="15" fill="#64748b"/>
+        <polygon points="80,220 120,180 140,200 180,160 220,200 220,220" fill="#64748b"/>
+        <text x="150" y="320" fill="#94a3b8" font-size="16" text-anchor="middle" font-family="Arial">No Image Available</text>
+      </svg>
+    `)}`;
+  }
+
   // Setup robust image error handling
-  setupImageErrorHandling(img, fallbackImages) {
-    let fallbackIndex = 0;
+  setupImageErrorHandling(img, loadingDiv, poster) {
+    let retryCount = 0;
+    const maxRetries = 2;
 
-    const handleError = () => {
-      const loadingDiv = img.previousElementSibling;
-
-      // Try next fallback image
-      if (fallbackIndex < fallbackImages.length - 1) {
-        fallbackIndex++;
-        img.src = fallbackImages[fallbackIndex];
+    const handleError = async () => {
+      console.log(`Image load failed for poster: ${poster.name}, retry: ${retryCount}`);
+      
+      if (retryCount < maxRetries) {
+        retryCount++;
+        
+        // Try different image sources based on retry count
+        if (retryCount === 1 && poster.image_url) {
+          // First retry: try direct URL if available
+          img.src = poster.image_url;
+        } else if (retryCount === 2) {
+          // Second retry: try via signed URL
+          const signedUrl = await this.getSignedImageUrl(poster);
+          if (signedUrl) {
+            img.src = signedUrl;
+          } else {
+            showFallback();
+          }
+        }
       } else {
-        // All fallbacks failed, show final fallback
-        loadingDiv.style.display = "none";
-        img.style.display = "block";
-        img.style.backgroundColor = "#334155";
-        img.style.color = "#94a3b8";
-        img.style.display = "flex";
-        img.style.alignItems = "center";
-        img.style.justifyContent = "center";
-        img.innerHTML =
-          '<span style="font-size: 14px;">Image Unavailable</span>';
+        showFallback();
       }
+    };
+
+    const showFallback = () => {
+      loadingDiv.style.display = "none";
+      img.src = this.getFallbackImage();
+      img.style.display = "block";
+      img.onerror = null; // Remove error handler to prevent infinite loop
     };
 
     img.onerror = handleError;
 
-    // Also validate the initial URL
-    this.validateImageUrl(img.src).then((isValid) => {
-      if (!isValid && img.src !== fallbackImages[0]) {
+    // Handle very slow loading images
+    setTimeout(() => {
+      if (img.style.display === "none" && loadingDiv.style.display !== "none") {
+        console.log(`Image loading timeout for poster: ${poster.name}`);
         handleError();
       }
-    });
+    }, 10000); // 10 second timeout
   }
 
-  // Validate image URL
-  async validateImageUrl(url) {
-    if (!url || url.trim() === "") return false;
+  // Get signed URL for private images
+  async getSignedImageUrl(poster) {
+    if (!poster.image_path) return null;
 
     try {
-      const response = await fetch(url, { method: "HEAD" });
-      return (
-        response.ok &&
-        response.headers.get("content-type")?.startsWith("image/")
-      );
-    } catch {
-      return false;
+      // This would require calling your backend endpoint
+      const response = await fetch(`/api/poster-image/${poster.id}`, {
+        credentials: 'include' // Include cookies for authentication
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.signedUrl;
+      }
+    } catch (error) {
+      console.error("Error getting signed URL:", error);
     }
+    
+    return null;
   }
 }
 
