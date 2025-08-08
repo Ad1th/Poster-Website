@@ -1,9 +1,49 @@
-// Admin page functionality
+// Admin page functionality (vanilla JS)
+class ImageLightbox {
+  constructor(rootSelector = "#image-lightbox") {
+    this.root = document.querySelector(rootSelector);
+    this.img = this.root.querySelector("#lightbox-img");
+    this.caption = this.root.querySelector("#lightbox-caption");
+    this.bindEvents();
+  }
+  bindEvents() {
+    this.root.addEventListener("click", (e) => {
+      const t = e.target;
+      if (t.hasAttribute("data-lightbox-close") || t.classList.contains("lightbox-backdrop")) {
+        this.close();
+      }
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && this.isOpen()) this.close();
+    });
+  }
+  open(src, alt = "") {
+    if (!src) return;
+    this.img.src = src;
+    this.img.alt = alt || "Poster";
+    this.caption.textContent = alt || "";
+    this.root.setAttribute("aria-hidden", "false");
+    this.root.classList.add("open");
+    const btn = this.root.querySelector(".lightbox-close");
+    if (btn) btn.focus();
+  }
+  close() {
+    this.root.classList.remove("open");
+    this.root.setAttribute("aria-hidden", "true");
+    this.img.src = "";
+    this.caption.textContent = "";
+  }
+  isOpen() {
+    return this.root.classList.contains("open");
+  }
+}
+
 class AdminPanel {
   constructor() {
     this.isAuthenticated = false;
-    this.adminPassword = "hostel123"; // Simple password for demo
+    this.adminPassword = "hostel123"; // Demo only
     this.posters = [];
+    this.lightbox = new ImageLightbox();
     this.init();
   }
 
@@ -39,17 +79,19 @@ class AdminPanel {
     const fileInput = document.getElementById("poster-image-file");
     const urlInput = document.getElementById("poster-image-url");
 
-    if (uploadOption && urlOption) {
+    if (uploadOption && urlOption && fileInput && urlInput) {
       uploadOption.addEventListener("change", () => {
         fileInput.disabled = false;
         urlInput.disabled = true;
         urlInput.value = "";
+        this.clearPreview();
       });
 
       urlOption.addEventListener("change", () => {
         fileInput.disabled = true;
         urlInput.disabled = false;
         fileInput.value = "";
+        this.clearPreview();
       });
     }
 
@@ -61,6 +103,27 @@ class AdminPanel {
     // URL input preview
     if (urlInput) {
       urlInput.addEventListener("input", (e) => this.handleUrlPreview(e));
+    }
+
+    // Lightbox for admin list thumbnails
+    const list = document.getElementById("poster-list");
+    if (list) {
+      list.addEventListener("click", (e) => {
+        const t = e.target;
+        if (t && t.classList && t.classList.contains("poster-thumbnail")) {
+          this.lightbox.open(t.src, t.alt || "");
+        }
+      });
+    }
+  }
+
+  // Clear image preview
+  clearPreview() {
+    const preview = document.getElementById("image-preview");
+    const previewImg = document.getElementById("preview-img");
+    if (preview && previewImg) {
+      previewImg.src = "";
+      preview.style.display = "none";
     }
   }
 
@@ -107,10 +170,10 @@ class AdminPanel {
   }
 
   // Show admin dashboard
-  showDashboard() {
+  async showDashboard() {
     document.getElementById("login-screen").style.display = "none";
     document.getElementById("admin-dashboard").style.display = "block";
-    this.loadPosters();
+    await this.loadPosters();
     this.renderPosterList();
   }
 
@@ -125,34 +188,16 @@ class AdminPanel {
     }
   }
 
-  // Save posters to localStorage
-  savePosters() {
-    try {
-      this.loadPosters();
-      localStorage.setItem("hostel_posters", JSON.stringify(this.posters));
-      // Trigger storage event for main page
-      window.dispatchEvent(
-        new StorageEvent("storage", {
-          key: "hostel_posters",
-          newValue: JSON.stringify(this.posters),
-        })
-      );
-    } catch (error) {
-      console.error("Error saving posters:", error);
-    }
-  }
-
   // Handle file preview
   handleFilePreview(e) {
-    this.loadPosters();
     const file = e.target.files[0];
     const preview = document.getElementById("image-preview");
     const previewImg = document.getElementById("preview-img");
 
     if (file && file.type.startsWith("image/")) {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        previewImg.src = e.target.result;
+      reader.onload = (ev) => {
+        previewImg.src = ev.target.result;
         preview.style.display = "block";
       };
       reader.readAsDataURL(file);
@@ -163,8 +208,7 @@ class AdminPanel {
 
   // Handle URL preview
   handleUrlPreview(e) {
-    this.loadPosters();
-    const url = e.target.value;
+    const url = e.target.value.trim();
     const preview = document.getElementById("image-preview");
     const previewImg = document.getElementById("preview-img");
 
@@ -177,9 +221,19 @@ class AdminPanel {
     }
   }
 
+  // Validate image URL by attempting to load it
+  validateImageUrl(url) {
+    if (!url || url.trim() === "") return Promise.resolve(false);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = url;
+    });
+  }
+
   // Handle add poster form submission
   async handleAddPoster(e) {
-    this.loadPosters();
     e.preventDefault();
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -188,11 +242,9 @@ class AdminPanel {
     // Get form data
     const formData = {
       name: document.getElementById("poster-name").value.trim(),
-      quantity:
-        Number.parseInt(document.getElementById("poster-quantity").value) || 0,
+      quantity: Number.parseInt(document.getElementById("poster-quantity").value) || 0,
       is_available: document.getElementById("poster-available").checked,
-      price:
-        Number.parseFloat(document.getElementById("poster-price").value) || 0.0,
+      price: Number.parseFloat(document.getElementById("poster-price").value) || 0.0,
     };
 
     // Get image data
@@ -218,26 +270,19 @@ class AdminPanel {
 
     // Show loading state
     submitBtn.disabled = true;
-    submitText.textContent = uploadOption
-      ? "Uploading image..."
-      : "Validating image...";
+    submitText.textContent = uploadOption ? "Uploading image..." : "Validating image...";
 
     try {
       let imageUrl = null;
       let imagePath = null;
-      this.loadPosters();
 
       if (uploadOption) {
-        // Handle file upload
         const file = fileInput.files[0];
 
-        // Validate file
         if (file.size > 5 * 1024 * 1024) {
-          // 5MB limit
           this.showMessage("File size must be less than 5MB", "error");
           return;
         }
-
         if (!file.type.startsWith("image/")) {
           this.showMessage("Please select a valid image file", "error");
           return;
@@ -247,41 +292,29 @@ class AdminPanel {
 
         // Generate unique filename
         const timestamp = Date.now();
-        const fileExtension = file.name.split(".").pop();
         const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
         const fileName = `${timestamp}_${cleanName}`;
+        const targetPath = `posters/${fileName}`;
 
         try {
-          // Try primary upload method
-          const uploadResult = await supabase.uploadImage(file, fileName);
+          // Primary upload (multipart)
+          const uploadResult = await supabase.uploadImage(file, targetPath);
           imageUrl = uploadResult.publicUrl;
           imagePath = uploadResult.path;
         } catch (primaryError) {
-          console.log(
-            "Primary upload failed, trying alternative method:",
-            primaryError
-          );
+          console.warn("Primary upload failed, trying base64:", primaryError);
           submitText.textContent = "Retrying upload...";
-
-          // Try alternative upload method
-          const uploadResult = await supabase.uploadImageAlternative(
-            file,
-            fileName
-          );
+          // Fallback upload (base64)
+          const uploadResult = await supabase.uploadImageBase64(file, targetPath);
           imageUrl = uploadResult.publicUrl;
           imagePath = uploadResult.path;
         }
       } else {
-        // Handle URL option
+        // URL option
         imageUrl = urlInput.value.trim();
-
-        // Validate URL
-        const isValidImage = await this.validateImageUrl(imageUrl);
-        if (!isValidImage) {
-          this.showMessage(
-            "Invalid image URL. Please check the URL and try again.",
-            "error"
-          );
+        const isValid = await this.validateImageUrl(imageUrl);
+        if (!isValid) {
+          this.showMessage("Invalid image URL. Please check the URL and try again.", "error");
           return;
         }
       }
@@ -290,9 +323,7 @@ class AdminPanel {
 
       // Add image data to form
       formData.image_url = imageUrl;
-      if (imagePath) {
-        formData.image_path = imagePath;
-      }
+      if (imagePath) formData.image_path = imagePath;
 
       // Add poster to Supabase
       await supabase.addPoster(formData);
@@ -303,42 +334,21 @@ class AdminPanel {
       document.getElementById("upload-option").checked = true;
       document.getElementById("poster-image-file").disabled = false;
       document.getElementById("poster-image-url").disabled = true;
-      document.getElementById("image-preview").style.display = "none";
+      this.clearPreview();
 
-      // Show success message
+      // Success
       this.showMessage("Poster added successfully!", "success");
 
       // Reload and re-render poster list
       await this.loadPosters();
       this.renderPosterList();
     } catch (error) {
-      console.error("Upload error details:", error);
-      this.showMessage("Error adding poster: " + error.message, "error");
+      console.error("Add poster error:", error);
+      const msg = (error && error.message) ? error.message : "Unknown error";
+      this.showMessage("Error adding poster: " + msg, "error");
     } finally {
-      // Reset button state
       submitBtn.disabled = false;
       submitText.textContent = "Add Poster";
-    }
-  }
-
-  // Validate image URL
-  async validateImageUrl(url) {
-    if (!url || url.trim() === "") return false;
-
-    try {
-      const response = await fetch(url, {
-        method: "HEAD",
-        mode: "no-cors", // Handle CORS issues
-      });
-      return true; // If no error, assume it's valid
-    } catch {
-      // Try to load as img element
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(true);
-        img.onerror = () => resolve(false);
-        img.src = url;
-      });
     }
   }
 
@@ -349,7 +359,6 @@ class AdminPanel {
     messageEl.className = `form-message message-${type}`;
     messageEl.style.display = "block";
 
-    // Hide message after 5 seconds
     setTimeout(() => {
       messageEl.style.display = "none";
     }, 5000);
@@ -364,7 +373,7 @@ class AdminPanel {
     // Hide loading
     loadingEl.style.display = "none";
 
-    if (this.posters.length === 0) {
+    if (!this.posters || this.posters.length === 0) {
       emptyEl.style.display = "block";
       listEl.style.display = "none";
       return;
@@ -390,51 +399,62 @@ class AdminPanel {
     item.className = "poster-item";
 
     const availabilityText = poster.is_available ? "Available" : "Unavailable";
-    const toggleClass = poster.is_available
-      ? "btn-toggle-available"
-      : "btn-toggle-unavailable";
-    const price = poster.price ? `₹${poster.price}` : "No price";
+    const toggleClass = poster.is_available ? "btn-toggle-available" : "btn-toggle-unavailable";
+    const price = poster.price != null ? `₹${Number(poster.price).toFixed(2)}` : "No price";
 
     // Use uploaded image or fallback
-    const imageUrl =
-      poster.image_url ||
-      "https://via.placeholder.com/48x48/475569/94a3b8?text=?";
+    let imageUrl = "";
+    if (poster.image_path && poster.image_path.trim() !== "") {
+      const sub = poster.image_path.replace(/^posters\//, "");
+      imageUrl = `${supabase.supabaseUrl}/storage/v1/object/public/posters/${encodeURIComponent(sub)}`;
+    } else if (poster.image_url) {
+      imageUrl = poster.image_url;
+    } else {
+      imageUrl = "https://via.placeholder.com/48x48/475569/94a3b8?text=?";
+    }
 
     item.innerHTML = `
-            <div class="poster-item-info">
-                <img 
-                    src="${imageUrl}" 
-                    alt="${poster.name}"
-                    class="poster-thumbnail"
-                    onerror="this.src='https://via.placeholder.com/48x48/475569/94a3b8?text=?'; this.onerror=null;"
-                    onload="this.style.opacity='1';"
-                    style="opacity: 0; transition: opacity 0.3s;"
-                >
-                <div class="poster-item-details">
-                    <h4>${poster.name}</h4>
-                    <p>Qty: ${
-                      poster.quantity
-                    } • ${availabilityText} • ${price}</p>
-                    ${
-                      poster.image_path
-                        ? '<small style="color: #6b7280;">Uploaded Image</small>'
-                        : '<small style="color: #6b7280;">External URL</small>'
-                    }
-                </div>
-            </div>
-            <div class="poster-item-actions">
-                <button class="btn btn-small ${toggleClass}" onclick="adminPanel.toggleAvailability(${
-      poster.id
-    })">
-                    ${availabilityText}
-                </button>
-                <button class="btn btn-small btn-delete" onclick="adminPanel.deletePoster(${
-                  poster.id
-                })">
-                    Delete
-                </button>
-            </div>
-        `;
+      <div class="poster-item-info">
+        <img
+          src="${imageUrl}"
+          alt="${poster.name}"
+          class="poster-thumbnail"
+        >
+        <div class="poster-item-details">
+          <h4>${poster.name}</h4>
+          <p>Qty: ${poster.quantity} • ${availabilityText} • ${price}</p>
+          ${
+            poster.image_path
+              ? '<small style="color: #9ca3af;">Uploaded Image</small>'
+              : poster.image_url
+              ? '<small style="color: #9ca3af;">External URL</small>'
+              : '<small style="color: #9ca3af;">No Image</small>'
+          }
+        </div>
+      </div>
+      <div class="poster-item-actions">
+        <button class="btn btn-small ${toggleClass}" data-action="toggle" data-id="${poster.id}">
+          ${availabilityText}
+        </button>
+        <button class="btn btn-small btn-delete" data-action="delete" data-id="${poster.id}">
+          Delete
+        </button>
+      </div>
+    `;
+
+    // Attach handlers
+    const actions = item.querySelector(".poster-item-actions");
+    actions.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const action = btn.getAttribute("data-action");
+      const id = Number(btn.getAttribute("data-id"));
+      if (action === "toggle") {
+        this.toggleAvailability(id);
+      } else if (action === "delete") {
+        this.deletePoster(id);
+      }
+    });
 
     return item;
   }
@@ -444,10 +464,7 @@ class AdminPanel {
     try {
       const poster = this.posters.find((p) => p.id === posterId);
       if (poster) {
-        await supabase.updatePoster(posterId, {
-          is_available: !poster.is_available,
-        });
-
+        await supabase.updatePoster(posterId, { is_available: !poster.is_available });
         await this.loadPosters();
         this.renderPosterList();
         this.showMessage("Poster availability updated", "success");
@@ -459,28 +476,27 @@ class AdminPanel {
 
   // Delete poster (with image cleanup)
   async deletePoster(posterId) {
-    if (confirm("Are you sure you want to delete this poster?")) {
-      try {
-        const poster = this.posters.find((p) => p.id === posterId);
+    const poster = this.posters.find((p) => p.id === posterId);
+    if (!confirm(`Are you sure you want to delete "${poster?.name || "this poster"}"?`)) return;
 
-        // Delete from database first
-        await supabase.deletePoster(posterId);
+    try {
+      // Delete from database
+      await supabase.deletePoster(posterId);
 
-        // If poster had an uploaded image, delete it from storage
-        if (poster && poster.image_path) {
-          try {
-            await supabase.deleteImage(poster.image_path);
-          } catch (error) {
-            console.warn("Could not delete image from storage:", error);
-          }
+      // If poster had an uploaded image, delete it from storage
+      if (poster && poster.image_path) {
+        try {
+          await supabase.deleteImage(poster.image_path);
+        } catch (error) {
+          console.warn("Could not delete image from storage:", error);
         }
-
-        await this.loadPosters();
-        this.renderPosterList();
-        this.showMessage("Poster deleted successfully", "success");
-      } catch (error) {
-        this.showMessage("Error deleting poster: " + error.message, "error");
       }
+
+      await this.loadPosters();
+      this.renderPosterList();
+      this.showMessage("Poster deleted successfully", "success");
+    } catch (error) {
+      this.showMessage("Error deleting poster: " + error.message, "error");
     }
   }
 }

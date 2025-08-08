@@ -1,8 +1,16 @@
-// Supabase configuration and client setup
+// Supabase configuration and client setup (vanilla JS)
+// IMPORTANT: For a pure browser app, Supabase policies must allow anon writes if you want to insert/update/delete.
+// Ensure your RLS policies and Storage policies permit anon role operations used here.
+// Recommended Storage bucket: "posters" (public read), with anon insert/update/delete if needed.
+
 class SupabaseClient {
   constructor() {
-    // Load environment variables
-    this.loadEnvVariables();
+    this.supabaseUrl = this.getEnvVariable("SUPABASE_URL");
+    this.supabaseKey = this.getEnvVariable("SUPABASE_ANON_KEY");
+
+    if (!this.supabaseUrl || !this.supabaseKey) {
+      throw new Error("Missing required environment variables: SUPABASE_URL and SUPABASE_ANON_KEY");
+    }
 
     this.baseUrl = `${this.supabaseUrl}/rest/v1`;
     this.headers = {
@@ -10,65 +18,33 @@ class SupabaseClient {
       apikey: this.supabaseKey,
       Authorization: `Bearer ${this.supabaseKey}`,
     };
+
+    // Storage bucket name (consistent across app)
+    this.storageBucket = "posters";
   }
 
-  // Load environment variables from .env file
-  loadEnvVariables() {
-    // For browser environment, use the fallback values
-    // In production, these should be injected by your build process
-    this.supabaseUrl = this.getEnvVariable("SUPABASE_URL");
-    this.supabaseKey = this.getEnvVariable("SUPABASE_ANON_KEY");
-
-    if (!this.supabaseUrl || !this.supabaseKey) {
-      throw new Error(
-        "Missing required environment variables: SUPABASE_URL and SUPABASE_ANON_KEY"
-      );
-    }
-  }
-
-  // Get env variables (reads from .env values)
+  // Provide your Supabase URL and anon key here
   getEnvVariable(name) {
-    const envVars = {
+    const env = {
       SUPABASE_URL: "https://sdiyukpjugtxtkmkeumv.supabase.co",
       SUPABASE_ANON_KEY:
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkaXl1a3BqdWd0eHRrbWtldW12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1OTc3MTgsImV4cCI6MjA2ODE3MzcxOH0.mRyIMWKU4OsS3zlWN6hZE9UNgGOy81517eFmZIXu9-E",
-      // Replace this with your actual service role key from Supabase dashboard
-      SUPABASE_SERVICE_KEY:
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkaXl1a3BqdWd0eHRrbWtldW12Iiwicm9zZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MjU5NzcxOCwiZXhwIjoyMDY4MTczNzE4fQ.SERVICE_ROLE_KEY_HERE",
     };
-    return envVars[name];
+    return env[name];
   }
 
-  // Create admin client with service role key for uploads
-  getAdminClient() {
-    const serviceKey = this.getEnvVariable("SUPABASE_SERVICE_KEY");
-    if (!serviceKey) {
-      throw new Error("Service role key required for admin operations");
-    }
-
-    return {
-      baseUrl: this.baseUrl,
-      headers: {
-        "Content-Type": "application/json",
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-      },
-    };
-  }
-
-  // Get all posters
+  // Posters: GET all
   async getPosters() {
     try {
-      const response = await fetch(
-        `${this.baseUrl}/posters?order=created_at.desc`,
-        {
-          method: "GET",
-          headers: this.headers,
-        }
-      );
+      // Include select=* for Supabase REST
+      const response = await fetch(`${this.baseUrl}/posters?select=*&order=created_at.desc`, {
+        method: "GET",
+        headers: this.headers,
+      });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const text = await response.text();
+        throw new Error(`HTTP ${response.status}: ${text}`);
       }
 
       return await response.json();
@@ -78,7 +54,7 @@ class SupabaseClient {
     }
   }
 
-  // Add new poster
+  // Posters: INSERT
   async addPoster(posterData) {
     try {
       const response = await fetch(`${this.baseUrl}/posters`, {
@@ -91,10 +67,10 @@ class SupabaseClient {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const text = await response.text();
+        throw new Error(`HTTP ${response.status}: ${text}`);
       }
 
-      // Check if response has content before parsing JSON
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
         const text = await response.text();
@@ -108,7 +84,7 @@ class SupabaseClient {
     }
   }
 
-  // Update poster
+  // Posters: UPDATE by id
   async updatePoster(id, updateData) {
     try {
       const response = await fetch(`${this.baseUrl}/posters?id=eq.${id}`, {
@@ -121,17 +97,18 @@ class SupabaseClient {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const text = await response.text();
+        throw new Error(`HTTP ${response.status}: ${text}`);
       }
 
-      return await response.json();
+      return true;
     } catch (error) {
       console.error("Error updating poster:", error);
       throw error;
     }
   }
 
-  // Delete poster
+  // Posters: DELETE by id
   async deletePoster(id) {
     try {
       const response = await fetch(`${this.baseUrl}/posters?id=eq.${id}`, {
@@ -140,7 +117,8 @@ class SupabaseClient {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const text = await response.text();
+        throw new Error(`HTTP ${response.status}: ${text}`);
       }
 
       return true;
@@ -150,27 +128,23 @@ class SupabaseClient {
     }
   }
 
-  // Upload image to storage bucket using service role
-  async uploadImage(file, fileName) {
+  // Storage: upload via multipart/form-data
+  async uploadImage(file, path) {
     try {
-      // Use service role key for uploads
-      const serviceKey = this.getEnvVariable("SUPABASE_SERVICE_KEY");
-
-      // For now, let's try a simpler approach without service key first
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(
-        `${this.supabaseUrl}/storage/v1/object/images/posters/${fileName}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${this.supabaseKey}`,
-            apikey: this.supabaseKey,
-          },
-          body: formData,
-        }
-      );
+      // path may include "posters/filename" or just "filename"
+      const sub = String(path).replace(/^posters\//, "");
+      const response = await fetch(`${this.supabaseUrl}/storage/v1/object/${this.storageBucket}/${encodeURIComponent(sub)}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.supabaseKey}`,
+          apikey: this.supabaseKey,
+          // do not set Content-Type when sending FormData
+        },
+        body: formData,
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -178,11 +152,10 @@ class SupabaseClient {
         throw new Error(`Upload failed: ${response.status} - ${errorText}`);
       }
 
-      // Return the public URL
-      const publicUrl = `${this.supabaseUrl}/storage/v1/object/public/images/posters/${fileName}`;
+      const publicUrl = `${this.supabaseUrl}/storage/v1/object/public/${this.storageBucket}/${encodeURIComponent(sub)}`;
 
       return {
-        path: `posters/${fileName}`,
+        path: `posters/${sub}`,
         publicUrl: publicUrl,
       };
     } catch (error) {
@@ -191,70 +164,48 @@ class SupabaseClient {
     }
   }
 
-  // Alternative upload method using base64 encoding
-  async uploadImageBase64(file, fileName) {
+  // Alternative: upload as base64 JSON (for edge cases)
+  async uploadImageBase64(file, path) {
     try {
-      // Convert file to base64
       const base64 = await this.fileToBase64(file);
-
-      // Upload as base64 string
-      const response = await fetch(
-        `${this.supabaseUrl}/storage/v1/object/images/posters/${fileName}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${this.supabaseKey}`,
-            apikey: this.supabaseKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            file: base64,
-            contentType: file.type,
-          }),
-        }
-      );
+      const sub = String(path).replace(/^posters\//, "");
+      const response = await fetch(`${this.supabaseUrl}/storage/v1/object/${this.storageBucket}/${encodeURIComponent(sub)}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.supabaseKey}`,
+          apikey: this.supabaseKey,
+          "Content-Type": "application/octet-stream",
+        },
+        body: this.base64ToBlob(base64, file.type),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Upload response:", response.status, errorText);
         throw new Error(`Upload failed: ${response.status} - ${errorText}`);
       }
 
-      // Return the public URL
-      const publicUrl = `${this.supabaseUrl}/storage/v1/object/public/images/posters/${fileName}`;
-
+      const publicUrl = `${this.supabaseUrl}/storage/v1/object/public/${this.storageBucket}/${encodeURIComponent(sub)}`;
       return {
-        path: `posters/${fileName}`,
-        publicUrl: publicUrl,
+        path: `posters/${sub}`,
+        publicUrl,
       };
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.error("Error uploading image (base64):", error);
       throw error;
     }
   }
 
-  // Helper function to convert file to base64
-  fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result.split(",")[1]); // Remove data:image/...;base64, prefix
-      reader.onerror = (error) => reject(error);
-    });
-  }
-
-  // Delete image from storage
+  // Delete storage object
   async deleteImage(filePath) {
     try {
-      const response = await fetch(
-        `${this.supabaseUrl}/storage/v1/object/images/${filePath}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${this.supabaseKey}`,
-          },
-        }
-      );
+      const sub = String(filePath).replace(/^posters\//, "");
+      const response = await fetch(`${this.supabaseUrl}/storage/v1/object/${this.storageBucket}/${encodeURIComponent(sub)}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${this.supabaseKey}`,
+          apikey: this.supabaseKey,
+        },
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -266,6 +217,32 @@ class SupabaseClient {
       console.error("Error deleting image:", error);
       throw error;
     }
+  }
+
+  // Helpers
+  fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(",")[1]); // strip data: prefix
+      reader.onerror = (error) => reject(error);
+    });
+  }
+
+  base64ToBlob(base64, contentType = "application/octet-stream") {
+    const byteCharacters = atob(base64);
+    const byteArrays = [];
+    const sliceSize = 1024;
+    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+      const slice = byteCharacters.slice(offset, offset + sliceSize);
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+    return new Blob(byteArrays, { type: contentType });
   }
 }
 

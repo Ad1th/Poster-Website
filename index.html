@@ -2,12 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Hostel Poster Store</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
-    <!-- Header Section -->
+  <body class="theme-dark">
     <header class="header">
       <div class="container">
         <div class="header-content">
@@ -15,19 +14,19 @@
             <h1>Hostel Poster Store</h1>
             <p>Minimalistic posters for your space</p>
           </div>
+          <div class="header-actions">
+            <a href="admin.html" class="btn btn-secondary">Admin Portal</a>
+          </div>
         </div>
       </div>
     </header>
 
-    <!-- Main Content -->
     <main class="main">
       <div class="container">
-        <!-- Loading State -->
         <div id="loading" class="loading">
           <div class="loading-text">Loading posters...</div>
         </div>
 
-        <!-- Empty State -->
         <div id="empty-state" class="empty-state" style="display: none">
           <div class="empty-text">No posters available yet</div>
           <p class="empty-subtext">
@@ -35,22 +34,32 @@
           </p>
         </div>
 
-        <!-- Poster Grid -->
         <div id="poster-grid" class="poster-grid" style="display: none">
-          <!-- Posters will be dynamically inserted here -->
+          <!-- Posters rendered here -->
         </div>
       </div>
     </main>
 
-    <!-- Footer -->
     <footer class="footer">
       <div class="container">
         <div class="footer-content">
-          <p>&copy; 2024 Hostel Poster Store. Simple & Clean.</p>
+          <p>&copy; <span id="year"></span> Hostel Poster Store. Simple & Clean.</p>
         </div>
       </div>
     </footer>
 
+    <div id="image-lightbox" class="lightbox" aria-modal="true" role="dialog" aria-hidden="true">
+      <div class="lightbox-backdrop" data-lightbox-close></div>
+      <div class="lightbox-body" role="document">
+        <button class="lightbox-close" aria-label="Close image" title="Close" data-lightbox-close>×</button>
+        <img id="lightbox-img" alt="" />
+        <div id="lightbox-caption" class="lightbox-caption"></div>
+      </div>
+    </div>
+
+    <script>
+      document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
     <script src="supabase.js"></script>
     <script src="script.js"></script>
   </body>

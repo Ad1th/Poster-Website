@@ -1,7 +1,51 @@
-// Main store page functionality
+// Main store page functionality (vanilla JS)
+class ImageLightbox {
+  constructor(rootSelector = "#image-lightbox") {
+    this.root = document.querySelector(rootSelector);
+    this.img = this.root.querySelector("#lightbox-img");
+    this.caption = this.root.querySelector("#lightbox-caption");
+    this.bindEvents();
+  }
+  bindEvents() {
+    // Close on backdrop or button click
+    this.root.addEventListener("click", (e) => {
+      const t = e.target;
+      if (t.hasAttribute("data-lightbox-close") || t.classList.contains("lightbox-backdrop")) {
+        this.close();
+      }
+    });
+    // ESC to close
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && this.isOpen()) this.close();
+    });
+  }
+  open(src, alt = "") {
+    if (!src) return;
+    this.img.src = src;
+    this.img.alt = alt || "Poster";
+    this.caption.textContent = alt || "";
+    this.root.setAttribute("aria-hidden", "false");
+    this.root.classList.add("open");
+    // Focus close button for accessibility
+    const btn = this.root.querySelector(".lightbox-close");
+    if (btn) btn.focus();
+  }
+  close() {
+    this.root.classList.remove("open");
+    this.root.setAttribute("aria-hidden", "true");
+    this.img.src = "";
+    this.img.alt = "";
+    this.caption.textContent = "";
+  }
+  isOpen() {
+    return this.root.classList.contains("open");
+  }
+}
+
 class PosterStore {
   constructor() {
     this.posters = [];
+    this.lightbox = new ImageLightbox();
     this.init();
   }
 
@@ -9,6 +53,7 @@ class PosterStore {
   async init() {
     await this.loadPosters();
     this.renderPosters();
+    this.bindGlobalImageClicks();
   }
 
   // Load posters from Supabase
@@ -18,7 +63,6 @@ class PosterStore {
     } catch (error) {
       console.error("Error loading posters:", error);
       this.posters = [];
-      // Show error message to user
       this.showErrorMessage("Failed to load posters. Please try again later.");
     }
   }
@@ -37,24 +81,21 @@ class PosterStore {
     const emptyStateEl = document.getElementById("empty-state");
     const gridEl = document.getElementById("poster-grid");
 
-    // Hide loading
     if (loadingEl) loadingEl.style.display = "none";
 
-    // Check if we have posters
-    if (this.posters.length === 0) {
+    const visible = this.posters.filter((p) => p.is_available && (p.quantity ?? 0) > 0);
+
+    if (visible.length === 0) {
       if (emptyStateEl) emptyStateEl.style.display = "block";
       if (gridEl) gridEl.style.display = "none";
       return;
     }
 
-    // Show grid and hide empty state
     if (emptyStateEl) emptyStateEl.style.display = "none";
     if (gridEl) {
       gridEl.style.display = "grid";
       gridEl.innerHTML = "";
-
-      // Render each poster
-      this.posters.forEach((poster) => {
+      visible.forEach((poster) => {
         const posterCard = this.createPosterCard(poster);
         gridEl.appendChild(posterCard);
       });
@@ -66,77 +107,65 @@ class PosterStore {
     const card = document.createElement("div");
     card.className = "poster-card";
 
-    const isInStock = poster.is_available && poster.quantity > 0;
+    const isInStock = poster.is_available && (poster.quantity ?? 0) > 0;
     const badgeClass = isInStock ? "badge-in-stock" : "badge-out-of-stock";
     const badgeText = isInStock ? "In Stock" : "Out of Stock";
     const statusClass = isInStock ? "status-available" : "status-unavailable";
-    const statusText = isInStock ? "Available" : "Unavailable";
 
     // Format price
-    const price = poster.price ? `₹${poster.price}` : "Price TBD";
+    const price = poster.price != null ? `₹${Number(poster.price).toFixed(2)}` : "Price TBD";
 
-    // Get dynamic image URL from Supabase
+    // Build image URL from Supabase storage or use direct image_url
     const imageUrl = this.getImageUrl(poster);
 
     card.innerHTML = `
-            <div class="poster-image-container">
-                <div class="image-loading" style="display: flex; align-items: center; justify-content: center; height: 400px; background: #f3f4f6; color: #6b7280;">
-                    Loading...
-                </div>
-                <img 
-                    src="${imageUrl}" 
-                    alt="${poster.name}"
-                    class="poster-image"
-                    style="display: none;"
-                    onload="this.style.display='block'; this.previousElementSibling.style.display='none';"
-                    onerror="this.handleImageError()"
-                >
-                <div class="availability-badge ${badgeClass}">
-                    ${badgeText}
-                </div>
-            </div>
-            <div class="poster-details">
-                <h3 class="poster-name">${poster.name}</h3>
-                <div class="poster-price">${price}</div>
-                <div class="poster-footer">
-                    <span class="poster-quantity">Qty: ${poster.quantity}</span>
-                    <button class="btn poster-status-btn ${statusClass}" ${
-      !isInStock ? "disabled" : ""
-    }>
-                        ${statusText}
-                    </button>
-                </div>
-            </div>
-        `;
+      <div class="poster-image-container">
+        <div class="image-loading">Loading...</div>
+        <img
+          src="${imageUrl}"
+          alt="${poster.name}"
+          class="poster-image"
+          style="display: none;"
+        >
+        <div class="availability-badge ${badgeClass}">${badgeText}</div>
+      </div>
+      <div class="poster-details">
+        <h3 class="poster-name">${poster.name}</h3>
+        <div class="poster-price">${price}</div>
+        <div class="poster-footer">
+          <span class="poster-quantity">Qty: ${poster.quantity ?? 0}</span>
+          <button class="btn poster-status-btn ${statusClass}" ${!isInStock ? "disabled" : ""}>
+            ${isInStock ? "Available" : "Unavailable"}
+          </button>
+        </div>
+      </div>
+    `;
 
-    // Setup image error handling after creating the card
+    // Setup image load/error handlers
     const img = card.querySelector(".poster-image");
     const loadingDiv = card.querySelector(".image-loading");
-    this.setupImageErrorHandling(img, loadingDiv, poster);
+    this.setupImageHandlers(img, loadingDiv, poster);
 
     return card;
   }
 
-  // Get image URL from Supabase storage or fallback
+  // Build image URL from storage or fallback
   getImageUrl(poster) {
-    // If poster has image_path, construct Supabase storage URL
-    if (poster.image_path) {
-      return `https://cspjbqypspcpojibljrl.supabase.co/storage/v1/object/public/poster-images/${poster.image_path}`;
+    if (poster.image_path && poster.image_path.trim() !== "") {
+      // poster.image_path may include "posters/filename"
+      const sub = poster.image_path.replace(/^posters\//, "");
+      return `${supabase.supabaseUrl}/storage/v1/object/public/posters/${encodeURIComponent(sub)}`;
     }
-    
-    // If poster has direct image_url, use it
     if (poster.image_url && poster.image_url.trim() !== "") {
-      return poster.image_url;
+      return poster.image_url.trim();
     }
-
-    // Return fallback placeholder
     return this.getFallbackImage();
   }
 
-  // Get fallback image
+  // Fallback image (inline SVG)
   getFallbackImage() {
     return `data:image/svg+xml;base64,${btoa(`
-      <svg width="300" height="400" viewBox="0 0 300 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="300" height="400" viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
         <rect width="300" height="400" fill="#334155"/>
         <rect x="50" y="100" width="200" height="200" fill="#475569" rx="8"/>
         <circle cx="100" cy="150" r="15" fill="#64748b"/>
@@ -146,72 +175,37 @@ class PosterStore {
     `)}`;
   }
 
-  // Setup robust image error handling
-  setupImageErrorHandling(img, loadingDiv, poster) {
-    let retryCount = 0;
-    const maxRetries = 2;
+  setupImageHandlers(img, loadingDiv, poster) {
+    let triedAlt = false;
 
-    const handleError = async () => {
-      console.log(`Image load failed for poster: ${poster.name}, retry: ${retryCount}`);
-      
-      if (retryCount < maxRetries) {
-        retryCount++;
-        
-        // Try different image sources based on retry count
-        if (retryCount === 1 && poster.image_url) {
-          // First retry: try direct URL if available
-          img.src = poster.image_url;
-        } else if (retryCount === 2) {
-          // Second retry: try via signed URL
-          const signedUrl = await this.getSignedImageUrl(poster);
-          if (signedUrl) {
-            img.src = signedUrl;
-          } else {
-            showFallback();
-          }
-        }
-      } else {
-        showFallback();
+    img.addEventListener("load", () => {
+      loadingDiv.style.display = "none";
+      img.style.display = "block";
+    });
+
+    img.addEventListener("error", () => {
+      if (!triedAlt && poster.image_url && poster.image_path) {
+        // Try the other source once
+        triedAlt = true;
+        const currentSrc = img.getAttribute("src") || "";
+        const storageSrc = this.getImageUrl({ ...poster, image_url: "", image_path: poster.image_path });
+        const directSrc = poster.image_url;
+        img.src = currentSrc === storageSrc ? directSrc : storageSrc;
+        return;
       }
-    };
-
-    const showFallback = () => {
       loadingDiv.style.display = "none";
       img.src = this.getFallbackImage();
       img.style.display = "block";
-      img.onerror = null; // Remove error handler to prevent infinite loop
-    };
-
-    img.onerror = handleError;
-
-    // Handle very slow loading images
-    setTimeout(() => {
-      if (img.style.display === "none" && loadingDiv.style.display !== "none") {
-        console.log(`Image loading timeout for poster: ${poster.name}`);
-        handleError();
-      }
-    }, 10000); // 10 second timeout
+    });
   }
 
-  // Get signed URL for private images
-  async getSignedImageUrl(poster) {
-    if (!poster.image_path) return null;
-
-    try {
-      // This would require calling your backend endpoint
-      const response = await fetch(`/api/poster-image/${poster.id}`, {
-        credentials: 'include' // Include cookies for authentication
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        return data.signedUrl;
+  bindGlobalImageClicks() {
+    document.body.addEventListener("click", (e) => {
+      const target = e.target;
+      if (target && target.classList && target.classList.contains("poster-image")) {
+        this.lightbox.open(target.src, target.alt || "");
       }
-    } catch (error) {
-      console.error("Error getting signed URL:", error);
-    }
-    
-    return null;
+    });
   }
 }
 
