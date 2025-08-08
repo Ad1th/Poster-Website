@@ -16,12 +16,23 @@
     <header class="header">
       <div class="container">
         <div class="header-content">
-          <div class="header-text">
-            <h1>PosterHub</h1>
-            <p>
-              <strong>Special Offers:</strong> Buy 6 posters, get 1 free &bull; Buy 10 posters, get 2 free.<br>
-              <span style="font-size: 0.95em;">Scroll down for contact information.</span>
-            </p>
+          <div class="header-logo-section" style="position: relative;">
+            <img
+                src="posterHub.png"
+                alt="PosterHub Logo"
+                class="header-logo"
+                style="display: block; margin: 0 auto; width: 500px; height: 500px; object-fit: contain; position: relative; z-index: 1; opacity: 1;"
+              />
+            <div class="header-text" style="position: relative; z-index: 2; margin-left: 0;">
+              <!-- <h1></h1> -->
+              <!-- <br class="mobile-br"> -->
+              <!-- <br class="mobile-br"> -->
+              
+              <p>
+                <strong>Special Offers:</strong> Buy 6 posters, get 1 free &bull; Buy 10 posters, get 2 free.<br>
+                <span style="font-size: 0.95em;">Scroll down for contact information.</span>
+              </p>
+            </div>
           </div>
           <div class="header-actions">
             <!-- <a href="admin.html" class="btn btn-secondary">
@@ -42,6 +53,39 @@
         </div>
       </div>
     </header>
+
+    <style>
+      @media (min-width: 769px) and (max-width: 1440px) {
+        .header-logo-section .header-logo {
+          position: absolute !important;
+          right: -150px !important;
+          top: -100px !important;
+          opacity: 0.4 !important;
+        }
+        .header-logo-section .header-text {
+          position: relative !important;
+          z-index: 2 !important;
+        }
+        .mobile-br {
+          display: none;
+        }
+      }
+      @media (max-width: 768px) {
+        .header-logo-section .header-logo {
+          width: 200px !important;
+          height: 200px !important;
+        }
+        .header-logo-section .header-text {
+          text-align: center;
+        }
+        .header-logo-section .header-text h1 {
+          font-size: 1.5rem;
+        }
+        .header-logo-section .header-text p {
+          font-size: 0.9rem;
+        }
+      }
+    </style>
 
     <main class="main">
       <div class="container">

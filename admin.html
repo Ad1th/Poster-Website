@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin - Hostel Poster Store</title>
-    <link rel="stylesheet" href="styles.css"/>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body class="theme-dark">
     <div id="login-screen" class="login-screen">
@@ -20,7 +20,11 @@
               required
             />
           </div>
-          <div id="auth-error" class="error-message" style="display: none"></div>
+          <div
+            id="auth-error"
+            class="error-message"
+            style="display: none"
+          ></div>
           <button type="submit" class="btn btn-primary btn-full">Login</button>
         </form>
         <div class="back-link">
@@ -33,9 +37,17 @@
       <header class="header">
         <div class="container">
           <div class="header-content">
-            <div class="header-text">
-              <h1>Admin Dashboard</h1>
-              <p>Manage your poster inventory</p>
+            <div class="header-logo-section">
+              <img
+                src="posterHub.png"
+                alt="PosterHub Logo"
+                class="header-logo"
+                style="width: 120px; height: 120px; object-fit: contain"
+              />
+              <div class="header-text">
+                <h1>Admin Dashboard</h1>
+                <p>Manage your poster inventory</p>
+              </div>
             </div>
             <div class="header-actions">
               <a href="index.html" class="btn btn-secondary">View Store</a>
@@ -67,36 +79,77 @@
                     <label for="poster-image">Image</label>
                     <div class="image-option-selector">
                       <label class="radio-label">
-                        <input type="radio" id="upload-option" name="image-option" value="upload" checked />
+                        <input
+                          type="radio"
+                          id="upload-option"
+                          name="image-option"
+                          value="upload"
+                          checked
+                        />
                         <span>Upload Image File</span>
                       </label>
                       <label class="radio-label">
-                        <input type="radio" id="url-option" name="image-option" value="url" />
+                        <input
+                          type="radio"
+                          id="url-option"
+                          name="image-option"
+                          value="url"
+                        />
                         <span>Use Image URL</span>
                       </label>
                     </div>
 
-                    <input type="file" id="poster-image-file" accept="image/*" class="file-input" />
-                    <input type="url" id="poster-image-url" placeholder="https://example.com/poster.jpg" class="url-input" disabled />
+                    <input
+                      type="file"
+                      id="poster-image-file"
+                      accept="image/*"
+                      class="file-input"
+                    />
+                    <input
+                      type="url"
+                      id="poster-image-url"
+                      placeholder="https://example.com/poster.jpg"
+                      class="url-input"
+                      disabled
+                    />
 
-                    <div id="image-preview" class="image-preview" style="display: none;">
+                    <div
+                      id="image-preview"
+                      class="image-preview"
+                      style="display: none"
+                    >
                       <img id="preview-img" alt="Preview" />
                       <small>Image Preview</small>
                     </div>
 
                     <small class="form-help">
-                      Upload an image file (max 5MB) or provide a direct image URL
+                      Upload an image file (max 5MB) or provide a direct image
+                      URL
                     </small>
                   </div>
 
                   <div class="form-group">
                     <label for="poster-quantity">Quantity *</label>
-                    <input type="number" id="poster-quantity" min="0" max="1000" value="1" required />
+                    <input
+                      type="number"
+                      id="poster-quantity"
+                      min="0"
+                      max="1000"
+                      value="1"
+                      required
+                    />
                   </div>
 
                   <div class="form-group">
                     <label for="poster-price">Price (₹) *</label>
-                    <input type="number" id="poster-price" min="0" step="0.01" value="0.00" required />
+                    <input
+                      type="number"
+                      id="poster-price"
+                      min="0"
+                      step="0.01"
+                      value="0.00"
+                      required
+                    />
                   </div>
 
                   <div class="form-group checkbox-group">
@@ -111,7 +164,11 @@
                     <span id="submit-text">Add Poster</span>
                   </button>
 
-                  <div id="form-message" class="form-message" style="display: none"></div>
+                  <div
+                    id="form-message"
+                    class="form-message"
+                    style="display: none"
+                  ></div>
                 </form>
               </div>
             </div>
@@ -119,9 +176,17 @@
             <div class="admin-section">
               <h2>Current Posters</h2>
               <div class="poster-list-container">
-                <div id="admin-loading" class="loading-small">Loading posters...</div>
-                <div id="admin-empty" class="empty-small" style="display: none">No posters added yet</div>
-                <div id="poster-list" class="poster-list" style="display: none"></div>
+                <div id="admin-loading" class="loading-small">
+                  Loading posters...
+                </div>
+                <div id="admin-empty" class="empty-small" style="display: none">
+                  No posters added yet
+                </div>
+                <div
+                  id="poster-list"
+                  class="poster-list"
+                  style="display: none"
+                ></div>
               </div>
             </div>
           </div>
@@ -129,10 +194,23 @@
       </main>
     </div>
 
-    <div id="image-lightbox" class="lightbox" aria-modal="true" role="dialog" aria-hidden="true">
+    <div
+      id="image-lightbox"
+      class="lightbox"
+      aria-modal="true"
+      role="dialog"
+      aria-hidden="true"
+    >
       <div class="lightbox-backdrop" data-lightbox-close></div>
       <div class="lightbox-body" role="document">
-        <button class="lightbox-close" aria-label="Close image" title="Close" data-lightbox-close>×</button>
+        <button
+          class="lightbox-close"
+          aria-label="Close image"
+          title="Close"
+          data-lightbox-close
+        >
+          ×
+        </button>
         <img id="lightbox-img" alt="" />
         <div id="lightbox-caption" class="lightbox-caption"></div>
       </div>
