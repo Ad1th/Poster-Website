@@ -2,9 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Hostel Poster Store</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hostel Poster Store - Premium Minimalistic Posters</title>
+    <meta
+      name="description"
+      content="Discover beautiful minimalistic posters for your hostel room. High-quality designs at affordable prices."
+    />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   </head>
   <body class="theme-dark">
     <header class="header">
@@ -12,10 +18,23 @@
         <div class="header-content">
           <div class="header-text">
             <h1>Hostel Poster Store</h1>
-            <p>Minimalistic posters for your space</p>
+            <p>Transform your space with premium minimalistic posters</p>
           </div>
           <div class="header-actions">
-            <a href="admin.html" class="btn btn-secondary">Admin Portal</a>
+            <a href="admin.html" class="btn btn-secondary">
+              <svg
+                width="16"
+                height="16"
+                fill="currentColor"
+                viewBox="0 0 16 16"
+                style="margin-right: 0.5rem"
+              >
+                <path
+                  d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"
+                />
+              </svg>
+              Admin Portal
+            </a>
           </div>
         </div>
       </div>
@@ -24,13 +43,14 @@
     <main class="main">
       <div class="container">
         <div id="loading" class="loading">
-          <div class="loading-text">Loading posters...</div>
+          <div class="loading-text">Discovering amazing posters...</div>
         </div>
 
         <div id="empty-state" class="empty-state" style="display: none">
-          <div class="empty-text">No posters available yet</div>
+          <div class="empty-text">🎨 No posters available yet</div>
           <p class="empty-subtext">
-            Check back later or contact admin to add some posters!
+            Our collection is being curated. Check back soon for amazing
+            posters!
           </p>
         </div>
 
@@ -43,22 +63,38 @@
     <footer class="footer">
       <div class="container">
         <div class="footer-content">
-          <p>&copy; <span id="year"></span> Hostel Poster Store. Simple & Clean.</p>
+          <p>
+            &copy; <span id="year"></span> Hostel Poster Store. Crafted with ❤️
+            for students.
+          </p>
         </div>
       </div>
     </footer>
 
-    <div id="image-lightbox" class="lightbox" aria-modal="true" role="dialog" aria-hidden="true">
+    <div
+      id="image-lightbox"
+      class="lightbox"
+      aria-modal="true"
+      role="dialog"
+      aria-hidden="true"
+    >
       <div class="lightbox-backdrop" data-lightbox-close></div>
       <div class="lightbox-body" role="document">
-        <button class="lightbox-close" aria-label="Close image" title="Close" data-lightbox-close>×</button>
+        <button
+          class="lightbox-close"
+          aria-label="Close image"
+          title="Close"
+          data-lightbox-close
+        >
+          ×
+        </button>
         <img id="lightbox-img" alt="" />
         <div id="lightbox-caption" class="lightbox-caption"></div>
       </div>
     </div>
 
     <script>
-      document.getElementById('year').textContent = new Date().getFullYear();
+      document.getElementById("year").textContent = new Date().getFullYear();
     </script>
     <script src="supabase.js"></script>
     <script src="script.js"></script>
