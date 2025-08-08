@@ -9,7 +9,10 @@ class ImageLightbox {
   bindEvents() {
     this.root.addEventListener("click", (e) => {
       const t = e.target;
-      if (t.hasAttribute("data-lightbox-close") || t.classList.contains("lightbox-backdrop")) {
+      if (
+        t.hasAttribute("data-lightbox-close") ||
+        t.classList.contains("lightbox-backdrop")
+      ) {
         this.close();
       }
     });
@@ -80,6 +83,12 @@ class AdminPanel {
     const urlInput = document.getElementById("poster-image-url");
 
     if (uploadOption && urlOption && fileInput && urlInput) {
+      // Set URL option as default
+      urlOption.checked = true;
+      uploadOption.checked = false;
+      fileInput.disabled = true;
+      urlInput.disabled = false;
+
       uploadOption.addEventListener("change", () => {
         fileInput.disabled = false;
         urlInput.disabled = true;
@@ -242,9 +251,11 @@ class AdminPanel {
     // Get form data
     const formData = {
       name: document.getElementById("poster-name").value.trim(),
-      quantity: Number.parseInt(document.getElementById("poster-quantity").value) || 0,
+      quantity:
+        Number.parseInt(document.getElementById("poster-quantity").value) || 0,
       is_available: document.getElementById("poster-available").checked,
-      price: Number.parseFloat(document.getElementById("poster-price").value) || 0.0,
+      price:
+        Number.parseFloat(document.getElementById("poster-price").value) || 0.0,
     };
 
     // Get image data
@@ -270,7 +281,9 @@ class AdminPanel {
 
     // Show loading state
     submitBtn.disabled = true;
-    submitText.textContent = uploadOption ? "Uploading image..." : "Validating image...";
+    submitText.textContent = uploadOption
+      ? "Uploading image..."
+      : "Validating image...";
 
     try {
       let imageUrl = null;
@@ -305,7 +318,10 @@ class AdminPanel {
           console.warn("Primary upload failed, trying base64:", primaryError);
           submitText.textContent = "Retrying upload...";
           // Fallback upload (base64)
-          const uploadResult = await supabase.uploadImageBase64(file, targetPath);
+          const uploadResult = await supabase.uploadImageBase64(
+            file,
+            targetPath
+          );
           imageUrl = uploadResult.publicUrl;
           imagePath = uploadResult.path;
         }
@@ -314,7 +330,10 @@ class AdminPanel {
         imageUrl = urlInput.value.trim();
         const isValid = await this.validateImageUrl(imageUrl);
         if (!isValid) {
-          this.showMessage("Invalid image URL. Please check the URL and try again.", "error");
+          this.showMessage(
+            "Invalid image URL. Please check the URL and try again.",
+            "error"
+          );
           return;
         }
       }
@@ -331,9 +350,10 @@ class AdminPanel {
       // Reset form
       e.target.reset();
       document.getElementById("poster-available").checked = true;
-      document.getElementById("upload-option").checked = true;
-      document.getElementById("poster-image-file").disabled = false;
-      document.getElementById("poster-image-url").disabled = true;
+      document.getElementById("url-option").checked = true;
+      document.getElementById("upload-option").checked = false;
+      document.getElementById("poster-image-file").disabled = true;
+      document.getElementById("poster-image-url").disabled = false;
       this.clearPreview();
 
       // Success
@@ -344,7 +364,7 @@ class AdminPanel {
       this.renderPosterList();
     } catch (error) {
       console.error("Add poster error:", error);
-      const msg = (error && error.message) ? error.message : "Unknown error";
+      const msg = error && error.message ? error.message : "Unknown error";
       this.showMessage("Error adding poster: " + msg, "error");
     } finally {
       submitBtn.disabled = false;
@@ -399,14 +419,19 @@ class AdminPanel {
     item.className = "poster-item";
 
     const availabilityText = poster.is_available ? "Available" : "Unavailable";
-    const toggleClass = poster.is_available ? "btn-toggle-available" : "btn-toggle-unavailable";
-    const price = poster.price != null ? `₹${Number(poster.price).toFixed(2)}` : "No price";
+    const toggleClass = poster.is_available
+      ? "btn-toggle-available"
+      : "btn-toggle-unavailable";
+    const price =
+      poster.price != null ? `₹${Number(poster.price).toFixed(2)}` : "No price";
 
     // Use uploaded image or fallback
     let imageUrl = "";
     if (poster.image_path && poster.image_path.trim() !== "") {
       const sub = poster.image_path.replace(/^posters\//, "");
-      imageUrl = `${supabase.supabaseUrl}/storage/v1/object/public/posters/${encodeURIComponent(sub)}`;
+      imageUrl = `${
+        supabase.supabaseUrl
+      }/storage/v1/object/public/posters/${encodeURIComponent(sub)}`;
     } else if (poster.image_url) {
       imageUrl = poster.image_url;
     } else {
@@ -433,10 +458,14 @@ class AdminPanel {
         </div>
       </div>
       <div class="poster-item-actions">
-        <button class="btn btn-small ${toggleClass}" data-action="toggle" data-id="${poster.id}">
+        <button class="btn btn-small ${toggleClass}" data-action="toggle" data-id="${
+      poster.id
+    }">
           ${availabilityText}
         </button>
-        <button class="btn btn-small btn-delete" data-action="delete" data-id="${poster.id}">
+        <button class="btn btn-small btn-delete" data-action="delete" data-id="${
+          poster.id
+        }">
           Delete
         </button>
       </div>
@@ -464,7 +493,9 @@ class AdminPanel {
     try {
       const poster = this.posters.find((p) => p.id === posterId);
       if (poster) {
-        await supabase.updatePoster(posterId, { is_available: !poster.is_available });
+        await supabase.updatePoster(posterId, {
+          is_available: !poster.is_available,
+        });
         await this.loadPosters();
         this.renderPosterList();
         this.showMessage("Poster availability updated", "success");
@@ -477,7 +508,12 @@ class AdminPanel {
   // Delete poster (with image cleanup)
   async deletePoster(posterId) {
     const poster = this.posters.find((p) => p.id === posterId);
-    if (!confirm(`Are you sure you want to delete "${poster?.name || "this poster"}"?`)) return;
+    if (
+      !confirm(
+        `Are you sure you want to delete "${poster?.name || "this poster"}"?`
+      )
+    )
+      return;
 
     try {
       // Delete from database
