@@ -423,7 +423,7 @@ class AdminPanel {
       ? "btn-toggle-available"
       : "btn-toggle-unavailable";
     const price =
-      poster.price != null ? `₹${Number(poster.price).toFixed(2)}` : "No price";
+      poster.price != null ? Number(poster.price).toFixed(2) : "0.00";
 
     // Use uploaded image or fallback
     let imageUrl = "";
@@ -447,7 +447,27 @@ class AdminPanel {
         >
         <div class="poster-item-details">
           <h4>${poster.name}</h4>
-          <p>Qty: ${poster.quantity} • ${availabilityText} • ${price}</p>
+          <div class="poster-editable-fields">
+            <div class="editable-field">
+              <label>Qty:</label>
+              <span class="editable-value" data-field="quantity" data-id="${
+                poster.id
+              }">${poster.quantity}</span>
+              <input type="number" class="editable-input" style="display: none;" min="0" value="${
+                poster.quantity
+              }">
+            </div>
+            <div class="editable-field">
+              <label>Price:</label>
+              <span class="editable-value" data-field="price" data-id="${
+                poster.id
+              }">₹${price}</span>
+              <input type="number" class="editable-input" style="display: none;" min="0" step="0.01" value="${price}">
+            </div>
+            <div class="editable-field">
+              <span>${availabilityText}</span>
+            </div>
+          </div>
           ${
             poster.image_path
               ? '<small style="color: #9ca3af;">Uploaded Image</small>'
@@ -471,7 +491,7 @@ class AdminPanel {
       </div>
     `;
 
-    // Attach handlers
+    // Attach handlers for actions
     const actions = item.querySelector(".poster-item-actions");
     actions.addEventListener("click", (e) => {
       const btn = e.target.closest("button");
@@ -485,7 +505,116 @@ class AdminPanel {
       }
     });
 
+    // Attach handlers for editable fields
+    const editableValues = item.querySelectorAll(".editable-value");
+    editableValues.forEach((span) => {
+      span.addEventListener("click", () => this.startEditing(span));
+    });
+
+    const editableInputs = item.querySelectorAll(".editable-input");
+    editableInputs.forEach((input) => {
+      input.addEventListener("blur", () => this.finishEditing(input));
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          input.blur();
+        } else if (e.key === "Escape") {
+          this.cancelEditing(input);
+        }
+      });
+    });
+
     return item;
+  }
+
+  // Start inline editing
+  startEditing(span) {
+    const input = span.nextElementSibling;
+    span.style.display = "none";
+    input.style.display = "inline-block";
+    input.focus();
+    input.select();
+  }
+
+  // Finish inline editing and save
+  async finishEditing(input) {
+    const span = input.previousElementSibling;
+    const field = span.getAttribute("data-field");
+    const id = Number(span.getAttribute("data-id"));
+    const newValue = input.value.trim();
+
+    // Validate input
+    if (field === "quantity" && (isNaN(newValue) || Number(newValue) < 0)) {
+      this.showMessage("Quantity must be a valid non-negative number", "error");
+      this.cancelEditing(input);
+      return;
+    }
+
+    if (field === "price" && (isNaN(newValue) || Number(newValue) < 0)) {
+      this.showMessage("Price must be a valid non-negative number", "error");
+      this.cancelEditing(input);
+      return;
+    }
+
+    const numericValue = Number(newValue);
+    const poster = this.posters.find((p) => p.id === id);
+
+    // Check if value actually changed
+    if (poster && poster[field] === numericValue) {
+      this.cancelEditing(input);
+      return;
+    }
+
+    try {
+      // Update in database
+      const updateData = {};
+      updateData[field] = numericValue;
+      await supabase.updatePoster(id, updateData);
+
+      // Update local data
+      if (poster) {
+        poster[field] = numericValue;
+      }
+
+      // Update display
+      if (field === "price") {
+        span.textContent = `₹${numericValue.toFixed(2)}`;
+      } else {
+        span.textContent = numericValue.toString();
+      }
+
+      span.style.display = "inline";
+      input.style.display = "none";
+
+      this.showMessage(
+        `${
+          field.charAt(0).toUpperCase() + field.slice(1)
+        } updated successfully`,
+        "success"
+      );
+    } catch (error) {
+      this.showMessage(`Error updating ${field}: ${error.message}`, "error");
+      this.cancelEditing(input);
+    }
+  }
+
+  // Cancel inline editing
+  cancelEditing(input) {
+    const span = input.previousElementSibling;
+    const field = span.getAttribute("data-field");
+    const id = Number(span.getAttribute("data-id"));
+    const poster = this.posters.find((p) => p.id === id);
+
+    // Reset input to original value
+    if (poster) {
+      if (field === "price") {
+        input.value = Number(poster[field]).toFixed(2);
+      } else {
+        input.value = poster[field];
+      }
+    }
+
+    span.style.display = "inline";
+    input.style.display = "none";
   }
 
   // Toggle poster availability

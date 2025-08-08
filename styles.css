@@ -350,7 +350,7 @@
   transform: scale(1.05);
 }
 
-.availability-badge {
+/* .availability-badge {
   position: absolute;
   top: 1rem;
   right: 1rem;
@@ -360,7 +360,7 @@
   border-radius: 2rem;
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(10px);
-}
+} */
 
 .badge-in-stock {
   background: var(--gradient-success);

@@ -10,7 +10,10 @@ class ImageLightbox {
     // Close on backdrop or button click
     this.root.addEventListener("click", (e) => {
       const t = e.target;
-      if (t.hasAttribute("data-lightbox-close") || t.classList.contains("lightbox-backdrop")) {
+      if (
+        t.hasAttribute("data-lightbox-close") ||
+        t.classList.contains("lightbox-backdrop")
+      ) {
         this.close();
       }
     });
@@ -83,7 +86,9 @@ class PosterStore {
 
     if (loadingEl) loadingEl.style.display = "none";
 
-    const visible = this.posters.filter((p) => p.is_available && (p.quantity ?? 0) > 0);
+    const visible = this.posters.filter(
+      (p) => p.is_available && (p.quantity ?? 0) > 0
+    );
 
     if (visible.length === 0) {
       if (emptyStateEl) emptyStateEl.style.display = "block";
@@ -109,11 +114,14 @@ class PosterStore {
 
     const isInStock = poster.is_available && (poster.quantity ?? 0) > 0;
     const badgeClass = isInStock ? "badge-in-stock" : "badge-out-of-stock";
-    const badgeText = isInStock ? "In Stock" : "Out of Stock";
+    const badgeText = isInStock ? "" : "Out of Stock";
     const statusClass = isInStock ? "status-available" : "status-unavailable";
 
     // Format price
-    const price = poster.price != null ? `₹${Number(poster.price).toFixed(2)}` : "Price TBD";
+    const price =
+      poster.price != null
+        ? `₹${Number(poster.price).toFixed(2)}`
+        : "Price TBD";
 
     // Build image URL from Supabase storage or use direct image_url
     const imageUrl = this.getImageUrl(poster);
@@ -127,14 +135,16 @@ class PosterStore {
           class="poster-image"
           style="display: none;"
         >
-        <div class="availability-badge ${badgeClass}">${badgeText}</div>
+        // <div class="availability-badge ${badgeClass}">${badgeText}</div>
       </div>
       <div class="poster-details">
         <h3 class="poster-name">${poster.name}</h3>
         <div class="poster-price">${price}</div>
         <div class="poster-footer">
           <span class="poster-quantity">Qty: ${poster.quantity ?? 0}</span>
-          <button class="btn poster-status-btn ${statusClass}" ${!isInStock ? "disabled" : ""}>
+          <button class="btn poster-status-btn ${statusClass}" ${
+      !isInStock ? "disabled" : ""
+    }>
             ${isInStock ? "Available" : "Unavailable"}
           </button>
         </div>
@@ -154,7 +164,9 @@ class PosterStore {
     if (poster.image_path && poster.image_path.trim() !== "") {
       // poster.image_path may include "posters/filename"
       const sub = poster.image_path.replace(/^posters\//, "");
-      return `${supabase.supabaseUrl}/storage/v1/object/public/posters/${encodeURIComponent(sub)}`;
+      return `${
+        supabase.supabaseUrl
+      }/storage/v1/object/public/posters/${encodeURIComponent(sub)}`;
     }
     if (poster.image_url && poster.image_url.trim() !== "") {
       return poster.image_url.trim();
@@ -188,7 +200,11 @@ class PosterStore {
         // Try the other source once
         triedAlt = true;
         const currentSrc = img.getAttribute("src") || "";
-        const storageSrc = this.getImageUrl({ ...poster, image_url: "", image_path: poster.image_path });
+        const storageSrc = this.getImageUrl({
+          ...poster,
+          image_url: "",
+          image_path: poster.image_path,
+        });
         const directSrc = poster.image_url;
         img.src = currentSrc === storageSrc ? directSrc : storageSrc;
         return;
@@ -202,7 +218,11 @@ class PosterStore {
   bindGlobalImageClicks() {
     document.body.addEventListener("click", (e) => {
       const target = e.target;
-      if (target && target.classList && target.classList.contains("poster-image")) {
+      if (
+        target &&
+        target.classList &&
+        target.classList.contains("poster-image")
+      ) {
         this.lightbox.open(target.src, target.alt || "");
       }
     });
