@@ -86,11 +86,16 @@ class PosterStore {
 
     if (loadingEl) loadingEl.style.display = "none";
 
-    const visible = this.posters.filter(
-      (p) => p.is_available && (p.quantity ?? 0) > 0
-    );
+    // Show all posters, but sort by availability (available first, then unavailable)
+    const sortedPosters = this.posters.sort((a, b) => {
+      // Available posters first
+      if (a.is_available && !b.is_available) return -1;
+      if (!a.is_available && b.is_available) return 1;
+      // Then by creation date (newest first)
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
 
-    if (visible.length === 0) {
+    if (sortedPosters.length === 0) {
       if (emptyStateEl) emptyStateEl.style.display = "block";
       if (gridEl) gridEl.style.display = "none";
       return;
@@ -100,7 +105,7 @@ class PosterStore {
     if (gridEl) {
       gridEl.style.display = "grid";
       gridEl.innerHTML = "";
-      visible.forEach((poster) => {
+      sortedPosters.forEach((poster) => {
         const posterCard = this.createPosterCard(poster);
         gridEl.appendChild(posterCard);
       });
@@ -113,9 +118,17 @@ class PosterStore {
     card.className = "poster-card";
 
     const isInStock = poster.is_available && (poster.quantity ?? 0) > 0;
+    const isUnavailable = !poster.is_available || (poster.quantity ?? 0) === 0;
+
+    // Add unavailable class for styling
+    if (isUnavailable) {
+      card.classList.add("poster-unavailable");
+    }
+
     const badgeClass = isInStock ? "badge-in-stock" : "badge-out-of-stock";
-    const badgeText = isInStock ? "" : "Out of Stock";
+    const badgeText = isUnavailable ? "Unavailable" : "Available";
     const statusClass = isInStock ? "status-available" : "status-unavailable";
+    const statusText = isInStock ? "Available" : "Unavailable";
 
     // Format price
     const price =
@@ -135,17 +148,19 @@ class PosterStore {
           class="poster-image"
           style="display: none;"
         >
-        // <div class="availability-badge ${badgeClass}">${badgeText}</div>
+        ${
+          badgeText
+            ? `<div class="availability-badge ${badgeClass}">${badgeText}</div>`
+            : ""
+        }
       </div>
       <div class="poster-details">
         <h3 class="poster-name">${poster.name}</h3>
         <div class="poster-price">${price}</div>
         <div class="poster-footer">
           <span class="poster-quantity">Qty: ${poster.quantity ?? 0}</span>
-          <button class="btn poster-status-btn ${statusClass}" ${
-      !isInStock ? "disabled" : ""
-    }>
-            ${isInStock ? "Available" : "Unavailable"}
+          <button class="btn poster-status-btn ${statusClass}" disabled>
+            ${statusText}
           </button>
         </div>
       </div>

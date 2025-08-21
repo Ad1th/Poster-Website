@@ -350,7 +350,31 @@
   transform: scale(1.05);
 }
 
-/* .availability-badge {
+/* Unavailable poster styling */
+.poster-card.poster-unavailable {
+  opacity: 0.8;
+  filter: grayscale(50%);
+  position: relative;
+}
+
+.poster-card.poster-unavailable::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 1.5rem;
+  pointer-events: none;
+}
+
+.poster-card.poster-unavailable:hover {
+  transform: translateY(-4px) scale(1.01);
+  opacity: 0.8;
+}
+
+.availability-badge {
   position: absolute;
   top: 1rem;
   right: 1rem;
@@ -360,16 +384,16 @@
   border-radius: 2rem;
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(10px);
-} */
+}
 
 .badge-in-stock {
   background: var(--gradient-success);
-  color: white;
+  color: rgb(0, 255, 17);
 }
 
 .badge-out-of-stock {
   background: linear-gradient(135deg, var(--danger) 0%, var(--danger-2) 100%);
-  color: white;
+  color: rgb(255, 0, 0);
 }
 
 .poster-details {
@@ -423,13 +447,13 @@
 
 .status-available {
   background: var(--gradient-success);
-  color: white;
+  color: rgba(21, 159, 80, 0.352);
   box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
 .status-unavailable {
   background: var(--muted-2);
-  color: #94a3b8;
+  color: #c93c3c;
   cursor: not-allowed;
 }
 
@@ -657,7 +681,7 @@
 }
 
 .btn-toggle-available {
-  background-color: #16a34a;
+  background-color: #439b633d;
   color: white;
 }
 
