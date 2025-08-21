@@ -388,7 +388,7 @@
 
 .badge-in-stock {
   background: var(--gradient-success);
-  color: rgb(0, 255, 17);
+  color: rgba(0, 255, 17, 0.562);
 }
 
 .badge-out-of-stock {
@@ -447,13 +447,13 @@
 
 .status-available {
   background: var(--gradient-success);
-  color: rgba(255, 255, 255, 0.352);
-  box-shadow: 0 4px 15px rgba(33, 134, 100, 0.3);
+  color: rgba(243, 255, 245, 0.352);
+  box-shadow: 0 4px 15px rgba(2, 255, 171, 0.999);
 }
 
 .status-unavailable {
   background: var(--muted-2);
-  color: #0c0808;
+  color: #171515;
   cursor: not-allowed;
 }
 
@@ -681,7 +681,7 @@
 }
 
 .btn-toggle-available {
-  background-color: #439b633d;
+  background-color: #0e5d12f7;
   color: white;
 }
 
